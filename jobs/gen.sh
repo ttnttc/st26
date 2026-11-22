@@ -37,9 +37,9 @@ for w in 0 1 2 3; do
           "$PZ/progs/programs.tsv" > "work/in_$w.tsv"
       ( ulimit -v 3500000; bin/elffeat "$PFILE" "work/in_$w.tsv" $PARAMS > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) & ;;
     *)
-      TR=""
-      case " $PARAMS " in *" c_mode=2 "*) TR="trace=work/trace_$w.jsonl" ;; esac
-      ( ulimit -v 3500000; bin/elfgen "$PFILE" "work/ids_$w.txt" $PARAMS $TR > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) & ;;
+      TR=""; TOOL=bin/elfgen
+      case " $PARAMS " in *" roll_states="*) TOOL=bin/elfroll ;; *" c_mode=2 "*) TR="trace=work/trace_$w.jsonl" ;; esac
+      ( ulimit -v 3500000; $TOOL "$PFILE" "work/ids_$w.txt" $PARAMS $TR > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) & ;;
   esac
 done
 wait
