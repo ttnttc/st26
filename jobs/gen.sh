@@ -16,8 +16,8 @@ case " $PARAMS " in *" policy="*)  # learned scorers ship encrypted; policy=<nam
 esac
 PFILE="$PZ/puzzles.csv"
 [ "$SPLIT" = "practice" ] && PFILE="$PZ/practice_puzzles.csv"
-case "$SPLIT" in progs:*)
-  PN="${SPLIT#progs:}"; mkdir -p "$PZ/progs"
+case "$SPLIT" in progs:*|feat:*)
+  PN="${SPLIT#*:}"; mkdir -p "$PZ/progs"
   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:ST26_DATA_KEY -in "data/progs_$PN.enc" | tar -xzf - -C "$PZ/progs" ;;
 esac
 case "$SPLIT" in synth:*)
@@ -32,6 +32,10 @@ for w in 0 1 2 3; do
       awk -F'\t' 'NR==FNR { if ($0 != "") keep[$0] = 1; next } ($1 in keep)' "work/ids_$w.txt" \
           "$PZ/progs/programs.tsv" > "work/in_$w.tsv"
       ( ulimit -v 3500000; bin/elflns "$PFILE" "work/in_$w.tsv" $PARAMS > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) & ;;
+    feat:*)  # dataset mode: elffeat over the given (expert) programs
+      awk -F'\t' 'NR==FNR { if ($0 != "") keep[$0] = 1; next } ($1 in keep)' "work/ids_$w.txt" \
+          "$PZ/progs/programs.tsv" > "work/in_$w.tsv"
+      ( ulimit -v 3500000; bin/elffeat "$PFILE" "work/in_$w.tsv" $PARAMS > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) & ;;
     *)
       TR=""
       case " $PARAMS " in *" c_mode=2 "*) TR="trace=work/trace_$w.jsonl" ;; esac

@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 split_file, split, chunk, of, workers, prefix = sys.argv[1:7]
-if split.startswith("progs:"):
+if split.startswith(("progs:", "feat:")):
     ids = [l.split("\t", 1)[0] for l in open(Path(sys.argv[7]) / "progs" / "programs.tsv") if "\t" in l]
 elif split.startswith("synth:"):
     ids = [r["id"] for r in csv.DictReader(open(Path(sys.argv[7]) / "synth" / "puzzles.csv", newline=""))]
