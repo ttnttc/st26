@@ -1,0 +1,57 @@
+name: gen
+# Generation / benchmark chunks. Matrix items and the encrypted config bundle come from the dispatcher.
+on:
+  workflow_dispatch:
+    inputs:
+      items:
+        description: JSON list of {"cfg":..., "chunk":..., "of":...} (set by the dispatcher)
+        required: true
+      max_parallel:
+        description: parallel jobs (set by the dispatcher from account-wide free slots)
+        required: true
+      split:
+        description: puzzle split (train/dev/test/all)
+        default: dev
+      configs:
+        description: encrypted, base64 config bundle (set by the dispatcher)
+        required: true
+      timeout:
+        description: per-job minutes
+        default: "330"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: st26-santa
+  cancel-in-progress: false
+
+jobs:
+  gen:
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ fromJSON(github.event.inputs.timeout) }}
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(github.event.inputs.max_parallel) }}
+      matrix:
+        item: ${{ fromJSON(github.event.inputs.items) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run
+        env:
+          ST26_DATA_KEY: ${{ secrets.ST26_DATA_KEY }}
+          CONFIGS: ${{ github.event.inputs.configs }}
+          SPLIT: ${{ github.event.inputs.split }}
+          CFG: ${{ matrix.item.cfg }}
+          CHUNK: ${{ matrix.item.chunk }}
+          OF: ${{ matrix.item.of }}
+        run: bash jobs/gen.sh
+      - name: Wipe plaintext
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/pz" work
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gen-${{ matrix.item.cfg }}-${{ matrix.item.chunk }}
+          path: out/result.cms
+          retention-days: 1
+          if-no-files-found: error
