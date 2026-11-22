@@ -17,7 +17,7 @@ case "$SPLIT" in progs:*)
 esac
 case "$SPLIT" in synth:*)
   SN="${SPLIT#synth:}"; mkdir -p "$PZ/synth"
-  openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:ST26_DATA_KEY -in "data/synth_$SN.enc" | tar -xzf - -C "$PZ/synth"
+  openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:ST26_DATA_KEY -in "data/$SN.enc" | tar -xzf - -C "$PZ/synth"
   PFILE="$PZ/synth/puzzles.csv" ;;
 esac
 python3 -I jobs/select_ids.py "$PZ/split.json" "$SPLIT" "$CHUNK" "$OF" 4 work/ids "$PZ"
