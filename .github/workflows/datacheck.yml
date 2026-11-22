@@ -1,0 +1,39 @@
+name: datacheck
+# Real-data path test: decrypt the encrypted puzzle bundle with the repo secret into the runner's temp dir, score a
+# known file with our binary, encrypt the result, wipe the plaintext. Manual trigger only.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Santa policy: one Santa workflow at a time and at most 6 parallel jobs (the 20-job account limit is shared).
+concurrency:
+  group: st26-santa
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      max-parallel: 6
+      matrix:
+        chunk: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decrypt inputs
+        env:
+          ST26_DATA_KEY: ${{ secrets.ST26_DATA_KEY }}
+        run: bash jobs/decrypt_inputs.sh
+      - name: Check
+        run: bash jobs/datacheck.sh "${{ matrix.chunk }}"
+      - name: Wipe plaintext
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/pz" work
+      - uses: actions/upload-artifact@v4
+        with:
+          name: datacheck-${{ matrix.chunk }}
+          path: out/result.cms
+          retention-days: 1
+          if-no-files-found: error
