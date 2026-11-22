@@ -1,0 +1,27 @@
+name: probe
+# Feasibility probe: runner hardware, static binaries run, a timed synthetic workload, encrypted artifact.
+# Manual trigger only. No secrets are used.
+on:
+  workflow_dispatch:
+    inputs:
+      cases:
+        description: synthetic cases for the timed workload
+        default: "200000"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe
+        run: bash jobs/probe.sh "${{ github.event.inputs.cases }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: probe
+          path: out/result.cms
+          retention-days: 1
+          if-no-files-found: error
