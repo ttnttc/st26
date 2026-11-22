@@ -3,11 +3,19 @@ name: datacheck
 # known file with our binary, encrypt the result, wipe the plaintext. Manual trigger only.
 on:
   workflow_dispatch:
+    inputs:
+      chunks:
+        description: JSON list of chunk ids (set by tools/st26_dispatch.py)
+        default: "[0, 1]"
+      max_parallel:
+        description: parallel jobs (set by the dispatcher from the account-wide free slots)
+        default: "2"
 
 permissions:
   contents: read
 
-# Santa policy: one Santa workflow at a time and at most 6 parallel jobs (the 20-job account limit is shared).
+# Santa policy (dynamic allocation): the dispatcher checks account-wide busy jobs (20-job limit shared with Google
+# Quantum) and sets chunks/max_parallel; one Santa workflow at a time.
 concurrency:
   group: st26-santa
   cancel-in-progress: false
@@ -17,9 +25,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
-      max-parallel: 6
+      max-parallel: ${{ fromJSON(github.event.inputs.max_parallel) }}
       matrix:
-        chunk: [0, 1]
+        chunk: ${{ fromJSON(github.event.inputs.chunks) }}
     steps:
       - uses: actions/checkout@v4
       - name: Decrypt inputs
