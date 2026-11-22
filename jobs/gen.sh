@@ -10,8 +10,10 @@ PARAMS=$(echo "$CONFIGS" | base64 -d | openssl enc -d -aes-256-cbc -pbkdf2 -iter
          | python3 -I -c "import json,sys; print(json.load(sys.stdin)['$CFG'])")
 python3 -I jobs/select_ids.py "$PZ/split.json" "$SPLIT" "$CHUNK" "$OF" 4 work/ids
 chmod +x bin/*
+PFILE="$PZ/puzzles.csv"
+[ "$SPLIT" = "practice" ] && PFILE="$PZ/practice_puzzles.csv"
 for w in 0 1 2 3; do
-  ( ulimit -v 3500000; bin/elfgen "$PZ/puzzles.csv" "work/ids_$w.txt" $PARAMS > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) &
+  ( ulimit -v 3500000; bin/elfgen "$PFILE" "work/ids_$w.txt" $PARAMS > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) &
 done
 wait
 echo "nproc $(nproc) cfg $CFG chunk $CHUNK/$OF" > work/meta.txt
