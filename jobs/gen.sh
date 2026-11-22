@@ -18,7 +18,8 @@ PFILE="$PZ/puzzles.csv"
 [ "$SPLIT" = "practice" ] && PFILE="$PZ/practice_puzzles.csv"
 case "$SPLIT" in progs:*|feat:*)
   PN="${SPLIT#*:}"; mkdir -p "$PZ/progs"
-  openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:ST26_DATA_KEY -in "data/progs_$PN.enc" | tar -xzf - -C "$PZ/progs" ;;
+  openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:ST26_DATA_KEY -in "data/progs_$PN.enc" | tar -xzf - -C "$PZ/progs"
+  if [ -f "$PZ/progs/puzzles.csv" ]; then PFILE="$PZ/progs/puzzles.csv"; fi ;;  # bundle brings its own (synthetic) puzzles
 esac
 case "$SPLIT" in synth:*)
   SN="${SPLIT#synth:}"; mkdir -p "$PZ/synth"
