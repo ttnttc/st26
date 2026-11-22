@@ -13,11 +13,13 @@ chmod +x bin/*
 PFILE="$PZ/puzzles.csv"
 [ "$SPLIT" = "practice" ] && PFILE="$PZ/practice_puzzles.csv"
 for w in 0 1 2 3; do
-  ( ulimit -v 3500000; bin/elfgen "$PFILE" "work/ids_$w.txt" $PARAMS > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) &
+  TR=""
+  case " $PARAMS " in *" c_mode=2 "*) TR="trace=work/trace_$w.jsonl" ;; esac
+  ( ulimit -v 3500000; bin/elfgen "$PFILE" "work/ids_$w.txt" $PARAMS $TR > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) &
 done
 wait
 echo "nproc $(nproc) cfg $CFG chunk $CHUNK/$OF" > work/meta.txt
-tar -czf work/result.tar.gz -C work meta.txt $(cd work && ls out_*.tsv stat_*.tsv)
+tar -czf work/result.tar.gz -C work meta.txt $(cd work && ls out_*.tsv stat_*.tsv trace_*.jsonl 2>/dev/null)
 openssl cms -encrypt -binary -aes256 -in work/result.tar.gz -outform DER -out out/result.cms keys/st26_cert.pem
 rm -rf work "$PZ"
 echo "gen: done"
