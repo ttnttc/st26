@@ -22,9 +22,8 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: st26-santa
-  cancel-in-progress: false
+# No concurrency group: several sweeps may run at once; the dispatcher (tools/st26_dispatch.py) keeps the account
+# at <= 20 queued + running jobs (dynamic allocation shared with the other project).
 
 jobs:
   gen:
