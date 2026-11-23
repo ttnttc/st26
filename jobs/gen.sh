@@ -32,7 +32,8 @@ for w in 0 1 2 3; do
     progs:*)  # LNS mode: improve the given programs
       awk -F'\t' 'NR==FNR { if ($0 != "") keep[$0] = 1; next } ($1 in keep)' "work/ids_$w.txt" \
           "$PZ/progs/programs.tsv" > "work/in_$w.tsv"
-      ( ulimit -v 3500000; bin/elflns "$PFILE" "work/in_$w.tsv" $PARAMS > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) & ;;
+      PT=bin/elflns; case " $PARAMS " in *" mode=cone "*|*" mode=suffix "*) PT=bin/elfsuffix ;; esac  # exact repair
+      ( ulimit -v 3500000; $PT "$PFILE" "work/in_$w.tsv" $PARAMS > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) & ;;
     feat:*)  # dataset mode: elffeat over the given (expert) programs
       awk -F'\t' 'NR==FNR { if ($0 != "") keep[$0] = 1; next } ($1 in keep)' "work/ids_$w.txt" \
           "$PZ/progs/programs.tsv" > "work/in_$w.tsv"
