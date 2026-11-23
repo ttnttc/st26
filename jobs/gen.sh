@@ -9,10 +9,10 @@ openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:ST26_DATA_KEY -in dat
 PARAMS=$(echo "$CONFIGS" | base64 -d | openssl enc -d -aes-256-cbc -pbkdf2 -iter 10000 -pass env:ST26_DATA_KEY \
          | python3 -I -c "import json,sys; print(json.load(sys.stdin)['$CFG'])")
 chmod +x bin/*
-case " $PARAMS " in *" policy="*|*" vmodel="*|*" model="*|*" hub_file="*)  # learned scorers ship encrypted; policy=/vmodel=<name> resolve inside the bundle
+case " $PARAMS " in *" policy="*|*" vmodel="*|*" model="*|*" hub_file="*|*" root_model="*)  # learned scorers ship encrypted; policy=/vmodel=<name> resolve inside the bundle
   mkdir -p "$PZ/models"
   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:ST26_DATA_KEY -in data/models.enc | tar -xzf - -C "$PZ/models"
-  PARAMS=$(echo " $PARAMS" | sed "s# policy=# policy=$PZ/models/#g; s# vmodel=# vmodel=$PZ/models/#g; s# model=# model=$PZ/models/#g; s# hub_file=# hub_file=$PZ/models/#g") ;;
+  PARAMS=$(echo " $PARAMS" | sed "s# policy=# policy=$PZ/models/#g; s# vmodel=# vmodel=$PZ/models/#g; s# model=# model=$PZ/models/#g; s# hub_file=# hub_file=$PZ/models/#g; s# root_model=# root_model=$PZ/models/#g") ;;
 esac
 PFILE="$PZ/puzzles.csv"
 [ "$SPLIT" = "practice" ] && PFILE="$PZ/practice_puzzles.csv"
