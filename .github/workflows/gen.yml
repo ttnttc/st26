@@ -44,6 +44,7 @@ jobs:
           CFG: ${{ matrix.item.cfg }}
           CHUNK: ${{ matrix.item.chunk }}
           OF: ${{ matrix.item.of }}
+          JOB_MINUTES: ${{ github.event.inputs.timeout }}
         run: bash jobs/gen.sh
       - name: Wipe plaintext
         if: always()
