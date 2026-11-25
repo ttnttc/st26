@@ -34,6 +34,13 @@ for w in 0 1 2 3; do
     progs:*)  # LNS mode: improve the given programs
       awk -F'\t' 'NR==FNR { if ($0 != "") keep[$0] = 1; next } ($1 in keep)' "work/ids_$w.txt" \
           "$PZ/progs/programs.tsv" > "work/in_$w.tsv"
+      case " $PARAMS " in *" ext="*)  # external polishing engine (triwalk | sa): ext=<name> secs=<s> [seed=] [slack=]
+        X=$(echo " $PARAMS" | sed -n 's/.* ext=\([a-z]*\).*/\1/p'); XS=$(echo " $PARAMS" | sed -n 's/.* secs=\([0-9.]*\).*/\1/p')
+        XD=$(echo " $PARAMS" | sed -n 's/.* seed=\([0-9]*\).*/\1/p'); XK=$(echo " $PARAMS" | sed -n 's/.* slack=\([0-9]*\).*/\1/p')
+        ( ulimit -v 3500000; $TL python3 -I jobs/ext_engine.py "$X" "$PFILE" "work/in_$w.tsv" "${XS:-60}" "${XD:-$w}" "${XK:-2}" \
+            > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) &
+        continue ;;
+      esac
       PT=bin/elflns; case " $PARAMS " in *" mode=cone "*|*" mode=suffix "*|*" mode=pair "*|*" mode=rootfeat "*|*" mode=rootrank "*|*" mode=prefix "*) PT=bin/elfsuffix ;; esac  # exact repair
       ( ulimit -v 3500000; $TL $PT "$PFILE" "work/in_$w.tsv" $PARAMS > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) & ;;
     feat:*)  # dataset mode: elffeat over the given (expert) programs
