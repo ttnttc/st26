@@ -1,9 +1,10 @@
 """Run an external polishing engine (triwalk or sa) on a chunk of programs; print improved programs as TSV.
 
-    python3 -I jobs/ext_engine.py <triwalk|sa> <puzzles.csv> <programs.tsv> <seconds per puzzle> [seed] [slack] [triwalk flags k:v,k:v]
+    python3 -I jobs/ext_engine.py <triwalk|tchain|sa> <puzzles.csv> <programs.tsv> <seconds per puzzle> [seed] [slack] [triwalk flags k:v,k:v]
 
 programs.tsv: id \\t ... \\t program (JSON, the last column). Output: id \\t start_len \\t new_len \\t program (JSON).
 Only strictly shorter programs are printed; they are re-validated locally after collection.
+tchain: slice k runs <seconds> * 2^min(k-1, 6), [slack] = number of slices; output id \\t slice \\t len \\t program (slice 0 = start).
 """
 import csv
 import json
@@ -32,29 +33,46 @@ def emit(pid, n0, prog):
     print(pid, n0, len(prog), json.dumps(prog, separators=(",", ":")), sep="\t", flush=True)
 
 
+def triwalk(pid, prog, secs, seed):
+    """one triwalk process on one puzzle; returns the programs it reports (R blocks)"""
+    s, t, L, R = P[pid]
+    txt = f"P {pid} {len(s)} {' '.join(map(str, s))} {len(t)} {' '.join(map(str, t))} {L} {R} {len(prog)}\n"
+    txt += "".join(f"{op} {i} {j} {d}\n" for op, i, j, d in prog)
+    try:
+        r = subprocess.run(["bin/triwalk", "--time", str(secs), "--seed", str(seed)] + targs, input=txt, capture_output=True,
+                           text=True, timeout=secs * 4 + 60)
+    except subprocess.TimeoutExpired:
+        return []
+    lines = r.stdout.split("\n")
+    out, k = [], 0
+    while k < len(lines):
+        h = lines[k].split()
+        if len(h) == 4 and h[0] == "R":
+            n = int(h[3])
+            body = [x.split() for x in lines[k + 1:k + 1 + n]]
+            out.append((h[1], int(h[2]), [[b[0], int(b[1]), int(b[2]), int(b[3])] for b in body]))
+            k += 1 + n
+        elif len(h) == 4 and h[0] == "V":
+            k += 1 + int(h[3])
+        else:
+            k += 1
+    return out
+
+
 if engine == "triwalk":
     for pid, prog in rows:  # one puzzle per process: a crash or timeout loses only that puzzle
-        s, t, L, R = P[pid]
-        txt = f"P {pid} {len(s)} {' '.join(map(str, s))} {len(t)} {' '.join(map(str, t))} {L} {R} {len(prog)}\n"
-        txt += "".join(f"{op} {i} {j} {d}\n" for op, i, j, d in prog)
-        try:
-            r = subprocess.run(["bin/triwalk", "--time", str(secs), "--seed", seed] + targs, input=txt, capture_output=True,
-                               text=True, timeout=secs * 4 + 60)
-        except subprocess.TimeoutExpired:
-            continue
-        lines = r.stdout.split("\n")
-        k = 0
-        while k < len(lines):
-            h = lines[k].split()
-            if len(h) == 4 and h[0] == "R":
-                n = int(h[3])
-                body = [x.split() for x in lines[k + 1:k + 1 + n]]
-                emit(h[1], int(h[2]), [[b[0], int(b[1]), int(b[2]), int(b[3])] for b in body])
-                k += 1 + n
-            elif len(h) == 4 and h[0] == "V":
-                k += 1 + int(h[3])
-            else:
-                k += 1
+        for rid, n0, p in triwalk(pid, prog, secs, seed):
+            emit(rid, n0, p)
+elif engine == "tchain":  # improvement trajectories (G0 pairs): `slack` short slices per puzzle, each from the last best
+    nsl = int(slack)
+    for pid, prog in rows:
+        best = prog
+        emit(pid, 0, best)  # slice 0 = the start program, so every pair can be rebuilt from this output alone
+        for k in range(1, nsl + 1):
+            got = [p for rid, _, p in triwalk(pid, best, secs * 2 ** min(k - 1, 6), int(seed) * 1000 + k) if rid == pid and len(p) < len(best)]
+            if got:
+                best = min(got, key=len)
+                emit(pid, k, best)
 elif engine == "sa":
     for pid, prog in rows:
         s, t, L, R = P[pid]
