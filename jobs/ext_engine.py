@@ -1,6 +1,6 @@
 """Run an external polishing engine (triwalk or sa) on a chunk of programs; print improved programs as TSV.
 
-    python3 -I jobs/ext_engine.py <triwalk|sa> <puzzles.csv> <programs.tsv> <seconds per puzzle> [seed] [slack]
+    python3 -I jobs/ext_engine.py <triwalk|sa> <puzzles.csv> <programs.tsv> <seconds per puzzle> [seed] [slack] [triwalk flags k:v,k:v]
 
 programs.tsv: id \\t ... \\t program (JSON, the last column). Output: id \\t start_len \\t new_len \\t program (JSON).
 Only strictly shorter programs are printed; they are re-validated locally after collection.
@@ -15,6 +15,7 @@ csv.field_size_limit(10**9)
 engine, pfile, progs, secs = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4])
 seed = sys.argv[5] if len(sys.argv) > 5 else "1"
 slack = sys.argv[6] if len(sys.argv) > 6 else "2"
+targs = [x for kv in (sys.argv[7].split(",") if len(sys.argv) > 7 and sys.argv[7] else []) for x in ("--" + kv.split(":")[0], kv.split(":")[1])]
 P = {}
 for r in csv.DictReader(open(pfile, newline="")):
     P[r["id"]] = (json.loads(r["starting_values"]), json.loads(r["targets"]), int(r["value_limit"]), int(r["registers"]))
@@ -37,7 +38,7 @@ if engine == "triwalk":
         txt = f"P {pid} {len(s)} {' '.join(map(str, s))} {len(t)} {' '.join(map(str, t))} {L} {R} {len(prog)}\n"
         txt += "".join(f"{op} {i} {j} {d}\n" for op, i, j, d in prog)
         try:
-            r = subprocess.run(["bin/triwalk", "--time", str(secs), "--seed", seed], input=txt, capture_output=True,
+            r = subprocess.run(["bin/triwalk", "--time", str(secs), "--seed", seed] + targs, input=txt, capture_output=True,
                                text=True, timeout=secs * 4 + 60)
         except subprocess.TimeoutExpired:
             continue
