@@ -8,6 +8,7 @@ tchain: slice k runs <seconds> * 2^min(k-1, 6), [slack] = number of slices; outp
 """
 import csv
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -16,7 +17,9 @@ csv.field_size_limit(10**9)
 engine, pfile, progs, secs = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4])
 seed = sys.argv[5] if len(sys.argv) > 5 else "1"
 slack = sys.argv[6] if len(sys.argv) > 6 else "2"
-targs = [x for kv in (sys.argv[7].split(",") if len(sys.argv) > 7 and sys.argv[7] else []) for x in ("--" + kv.split(":")[0], kv.split(":")[1])]
+_kv = [kv.split(":", 1) for kv in (sys.argv[7].split(",") if len(sys.argv) > 7 and sys.argv[7] else [])]
+TBIN = "bin/" + next((v for k, v in _kv if k == "bin"), "triwalk")  # bin:<name> picks the binary (e.g. triwalk_prior)
+targs = [x for k, v in _kv if k != "bin" for x in ("--" + k, os.path.join(os.environ.get("PRIOR_DIR", "."), v) if k == "prior" else v)]
 P = {}
 for r in csv.DictReader(open(pfile, newline="")):
     P[r["id"]] = (json.loads(r["starting_values"]), json.loads(r["targets"]), int(r["value_limit"]), int(r["registers"]))
@@ -39,7 +42,7 @@ def triwalk(pid, prog, secs, seed):
     txt = f"P {pid} {len(s)} {' '.join(map(str, s))} {len(t)} {' '.join(map(str, t))} {L} {R} {len(prog)}\n"
     txt += "".join(f"{op} {i} {j} {d}\n" for op, i, j, d in prog)
     try:
-        r = subprocess.run(["bin/triwalk", "--time", str(secs), "--seed", str(seed)] + targs, input=txt, capture_output=True,
+        r = subprocess.run([TBIN, "--time", str(secs), "--seed", str(seed)] + targs, input=txt, capture_output=True,
                            text=True, timeout=secs * 4 + 60)
     except subprocess.TimeoutExpired:
         return []

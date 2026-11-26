@@ -38,7 +38,7 @@ for w in 0 1 2 3; do
         X=$(echo " $PARAMS" | sed -n 's/.* ext=\([a-z]*\).*/\1/p'); XS=$(echo " $PARAMS" | sed -n 's/.* secs=\([0-9.]*\).*/\1/p')
         XD=$(echo " $PARAMS" | sed -n 's/.* seed=\([0-9]*\).*/\1/p'); XK=$(echo " $PARAMS" | sed -n 's/.* slack=\([0-9]*\).*/\1/p')
         XN=$(echo " $PARAMS" | sed -n 's/.* slices=\([0-9]*\).*/\1/p'); XK=${XN:-$XK}  # tchain: slices=<n>
-        XA=$(echo " $PARAMS" | sed -n 's/.* targs=\([A-Za-z0-9.:,]*\).*/\1/p')  # triwalk flags, e.g. targs=T:0.5,cap:3
+        XA=$(echo " $PARAMS" | sed -n 's/.* targs=\([A-Za-z0-9._:,]*\).*/\1/p'); export PRIOR_DIR="$PZ/progs"  # triwalk flags, e.g. targs=T:0.5,cap:3
         ( ulimit -v 3500000; $TL python3 -I jobs/ext_engine.py "$X" "$PFILE" "work/in_$w.tsv" "${XS:-60}" "${XD:-$w}" "${XK:-2}" "$XA" \
             > "work/out_$w.tsv" 2> "work/stat_$w.tsv" ) &
         continue ;;
