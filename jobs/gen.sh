@@ -16,7 +16,7 @@ case " $PARAMS " in *" policy="*|*" vmodel="*|*" model="*|*" hub_file="*|*" root
 esac
 PFILE="$PZ/puzzles.csv"
 [ "$SPLIT" = "practice" ] && PFILE="$PZ/practice_puzzles.csv"
-case "$SPLIT" in progs:*|feat:*)
+case "$SPLIT" in progs:*|feat:*|pz:*)
   PN="${SPLIT#*:}"; mkdir -p "$PZ/progs"
   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:ST26_DATA_KEY -in "data/progs_$PN.enc" | tar -xzf - -C "$PZ/progs"
   if [ -f "$PZ/progs/puzzles.csv" ]; then PFILE="$PZ/progs/puzzles.csv"; fi ;;  # bundle brings its own (synthetic) puzzles
